@@ -2,21 +2,22 @@
 
 from PIL import Image, ExifTags
 from datetime import datetime
+from argparse import ArgumentParser
 import shutil
 import os
 import re
 
 def copy_meta_data_img(date, image, filename, extension):
-    if not os.path.exists(output_folder_sorted):
-        os.makedirs(output_folder_sorted)
-    shutil.copy2(os.path.join(input_folder, image), output_folder_sorted
-        + "/" + date + "_" + filename + "." + extension.lower())
+    if not os.path.exists(output_dir_sorted):
+        os.makedirs(output_dir_sorted)
+    shutil.copy2(os.path.join(input_dir, image), output_dir_sorted
+                 + "/" + date + "_" + filename + "." + extension.lower())
 
 def copy_no_data_img(image, filename, extension):
-    if not os.path.exists(output_folder_unsorted):
-        os.makedirs(output_folder_unsorted)
-    shutil.copy2(os.path.join(input_folder, image), output_folder_unsorted
-        + "/" + filename + "." + extension.lower())
+    if not os.path.exists(output_dir_unsorted):
+        os.makedirs(output_dir_unsorted)
+    shutil.copy2(os.path.join(input_dir, image), output_dir_unsorted
+                 + "/" + filename + "." + extension.lower())
 
 def parse_date(img_exif):
     img_exif_dict = dict(img_exif)
@@ -28,7 +29,7 @@ def parse_date(img_exif):
     return None
 
 def sort_pics():
-    for image in os.listdir(input_folder):
+    for image in os.listdir(input_dir):
         filename_matches = re.finditer(img_regex, image, re.UNICODE)
         filename, extension = None, None
         for match in filename_matches:
@@ -36,7 +37,7 @@ def sort_pics():
         if not filename or not extension:
             continue
 
-        img = Image.open(os.path.join(input_folder, image))
+        img = Image.open(os.path.join(input_dir, image))
         img_exif = img.getexif()
 
         if img_exif:
@@ -45,13 +46,21 @@ def sort_pics():
             day_str = image_time.strftime("%Y_%m_%d_%A")
             copy_meta_data_img(day_str, image, filename, extension)
         else:
-            print("The file " + os.path.join(input_folder, image) + " has no exif data.")
+            print("The file " + os.path.join(input_dir, image) + " has no exif data.")
             copy_no_data_img(image, filename, extension)
 
 if __name__ == '__main__':
-    dirname = os.getcwd()
-    input_folder = dirname + "/input"
-    output_folder_unsorted = dirname + "/output/unsorted"
-    output_folder_sorted = dirname + "/output/sorted"
-    img_regex = r"(?P<filename>.*)\.(?P<extension>JPG|jpg|jpeg|PNG|png|tiff|tif|TIF|BMP|bmp)"
-    sort_pics()
+    parser = ArgumentParser(description = "Split up and sort pictures")
+    parser.add_argument("-d", "--directory", type = str, required = True, metavar = "", help = "directory of input images")
+    args = parser.parse_args()
+    input_dir = args.directory
+
+    if os.path.exists(input_dir):
+        dirname = os.getcwd()
+        output_dir_unsorted = dirname + "/output/unsorted"
+        output_dir_sorted = dirname + "/output/sorted"
+        img_regex = r"(?P<filename>.*)\.(?P<extension>JPG|jpg|jpeg|PNG|png|tiff|tif|TIF|BMP|bmp)"
+        sort_pics()
+    else:
+        print("Invalid input directory.")
+
